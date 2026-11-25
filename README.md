@@ -1,4 +1,4 @@
-# VoxLead AI — Autonomous AI Sales Voice Agent
+# Autonomous AI Sales Voice Agent
 
 An autonomous AI sales voice assistant for an electronics showroom. Customers speak naturally in the browser, and the agent understands intent, searches a 2,000-product Excel catalog, remembers conversation context, qualifies leads (`HOT` / `WARM` / `COLD`), books showroom appointments, and speaks responses back aloud.
 
