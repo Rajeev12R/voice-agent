@@ -82,3 +82,4 @@ npm install
 npm run dev
 ```
 Open the Vite URL (usually `http://localhost:5173`) in Chrome or Edge, click **Start Voice Demo**, and start speaking.
+
