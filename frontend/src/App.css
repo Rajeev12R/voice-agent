@@ -159,6 +159,36 @@
   }
 }
 
+.lang-toggle {
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--social-bg);
+  border: 1px solid var(--border);
+}
+
+.lang-pill {
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+
+  &.active {
+    background: var(--accent-bg);
+    color: var(--accent);
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
 .voice-actions {
   display: flex;
   align-items: center;

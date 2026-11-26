@@ -12,10 +12,15 @@ const api = axios.create({
  * @param {string} transcript
  * @param {string | null} sessionId
  */
-export async function sendTranscript(transcript, sessionId = null) {
+export async function sendTranscript(
+  transcript,
+  sessionId = null,
+  language = 'en-IN'
+) {
   const response = await api.post('/api/conversation/transcript', {
     transcript,
     sessionId,
+    language,
   })
   return response.data
 }
