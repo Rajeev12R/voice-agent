@@ -12,6 +12,7 @@ function generateSessionId() {
 
 function Microphone({ onTurnComplete }) {
   const [isListening, setIsListening] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
   const [levels, setLevels] = useState(() => Array(BAR_COUNT).fill(0.25))
   const [lastReply, setLastReply] = useState('')
   const [isSpeaking, setIsSpeaking] = useState(false)
@@ -75,6 +76,7 @@ function Microphone({ onTurnComplete }) {
     lastSentRef.current = { text: cleaned, time: now }
 
     try {
+      setIsProcessing(true)
       const data = await sendTranscript(cleaned, getSessionId())
       console.log('[Voice Agent] Sent transcript to backend:', cleaned, data)
 
@@ -95,6 +97,8 @@ function Microphone({ onTurnComplete }) {
         '[Voice Agent] Failed to send transcript:',
         err.response?.data || err.message
       )
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -296,6 +300,17 @@ function Microphone({ onTurnComplete }) {
           <button type="button" className="counter stop-btn" onClick={handleStop}>
             Stop
           </button>
+        </div>
+      )}
+
+      {isProcessing && (
+        <div className="processing-pill" role="status" aria-live="polite">
+          <span className="processing-dots" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+          <span>Processing…</span>
         </div>
       )}
 

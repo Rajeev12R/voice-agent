@@ -131,11 +131,11 @@ function CrmDashboard({ refreshKey = 0 }) {
             <thead>
               <tr>
                 <th>Customer</th>
-                <th>Score</th>
+                <th>Qualification</th>
                 <th>Interest</th>
                 <th>Budget</th>
                 <th>Timeline</th>
-                <th>Latest Note</th>
+                <th>Signals &amp; Notes</th>
               </tr>
             </thead>
             <tbody>
@@ -144,10 +144,14 @@ function CrmDashboard({ refreshKey = 0 }) {
                   <td>
                     <div className="lead-name">{lead.customerName}</div>
                     {lead.phone && <div className="lead-sub">{lead.phone}</div>}
+                    {lead.turns > 0 && (
+                      <div className="lead-sub">{lead.turns} turn{lead.turns === 1 ? '' : 's'}</div>
+                    )}
                   </td>
                   <td>
                     <span className={`score-badge score-${lead.score.toLowerCase()}`}>
                       {lead.score}
+                      {typeof lead.leadScore === 'number' ? ` · ${lead.leadScore}/100` : ''}
                     </span>
                   </td>
                   <td>
@@ -157,7 +161,18 @@ function CrmDashboard({ refreshKey = 0 }) {
                     {lead.budget ? `₹${Number(lead.budget).toLocaleString()}` : '—'}
                   </td>
                   <td>{lead.timeline || 'Unspecified'}</td>
-                  <td className="lead-note">{lead.notes || '—'}</td>
+                  <td className="lead-note">
+                    {Array.isArray(lead.reasons) && lead.reasons.length > 0 && (
+                      <div className="reason-list">
+                        {lead.reasons.slice(0, 3).map((reason) => (
+                          <span key={reason} className="reason-tag">
+                            {reason}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div>{lead.notes || '—'}</div>
+                  </td>
                 </tr>
               ))}
             </tbody>

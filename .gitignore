@@ -7,4 +7,5 @@ backend/data/sessions.json
 backend/data/leads.json
 backend/data/appointments.json
 backend/data/handoffs.json
+backend/data/kb_embeddings.json
 

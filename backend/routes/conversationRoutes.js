@@ -2,6 +2,7 @@ import express from "express";
 
 import { runSupervisor } from "../supervisorAgent.js";
 import { searchProducts } from "../services/productService.js";
+import { retrieveKnowledge } from "../services/ragService.js";
 import { generateSalesResponse } from "../services/responseService.js";
 import { createAppointmentRequest } from "../services/appointmentService.js";
 import { createHandoff } from "../services/handoffService.js";
@@ -21,6 +22,12 @@ const PRODUCT_INTENTS = new Set([
   "PRICE_ENQUIRY",
   "COMPARISON",
   "WARRANTY_ENQUIRY"
+]);
+
+const RAG_INTENTS = new Set([
+  "GENERAL_QUERY",
+  "WARRANTY_ENQUIRY",
+  "OTHER"
 ]);
 
 router.post("/transcript", async (req, res) => {
@@ -51,18 +58,19 @@ router.post("/transcript", async (req, res) => {
     console.log("Supervisor Decision:", decision);
 
     await updateSessionPreferences(session, decision.entities);
-    const lead = await qualifyAndSaveLead({
-      sessionId: session.sessionId,
-      transcript,
-      decision,
-      session,
-    });
 
     // 1. HUMAN HANDOFF
     if (
       decision.intent === "HUMAN_HANDOFF" ||
       decision.actions.includes("HUMAN_HANDOFF")
     ) {
+      const lead = await qualifyAndSaveLead({
+        sessionId: session.sessionId,
+        transcript,
+        decision,
+        session,
+      });
+
       const handoff = await createHandoff({
         transcript,
         history: activeHistory,
@@ -91,6 +99,13 @@ router.post("/transcript", async (req, res) => {
       decision.intent === "APPOINTMENT_BOOKING" ||
       decision.actions.includes("BOOK_APPOINTMENT")
     ) {
+      const lead = await qualifyAndSaveLead({
+        sessionId: session.sessionId,
+        transcript,
+        decision,
+        session,
+      });
+
       const incoming = decision.entities || {};
       const draft = session.appointmentDraft;
 
@@ -149,11 +164,12 @@ router.post("/transcript", async (req, res) => {
       });
     }
 
-    // 3. PRODUCT SEARCH (using current entities merged with remembered preferences)
+    // 3. PRODUCT SEARCH & KNOWLEDGE BASE RAG
     const needsProductSearch =
-      PRODUCT_INTENTS.has(decision.intent) ||
-      decision.actions.includes("SEARCH_PRODUCTS") ||
-      decision.actions.includes("RECOMMEND_PRODUCT");
+      decision.intent !== "GENERAL_QUERY" &&
+      (PRODUCT_INTENTS.has(decision.intent) ||
+        decision.actions.includes("SEARCH_PRODUCTS") ||
+        decision.actions.includes("RECOMMEND_PRODUCT"));
 
     const searchEntities = {
       ...session.preferences,
@@ -166,16 +182,39 @@ router.post("/transcript", async (req, res) => {
 
     const products = needsProductSearch ? searchProducts(searchEntities) : [];
 
-    // 4. GENERAL QUERY AND PRODUCT RESPONSE
+    const needsRag =
+      RAG_INTENTS.has(decision.intent) ||
+      decision.actions.includes("SEARCH_KNOWLEDGE") ||
+      Boolean(decision.needsKnowledgeBase);
+
+    const knowledgeContext = needsRag ? await retrieveKnowledge(transcript, 3) : [];
+    if (needsRag) {
+      console.log(
+        `[RAG] Retrieved ${knowledgeContext.length} chunks:`,
+        knowledgeContext.map((k) => `${k.title} (${k.method}:${k.score})`)
+      );
+    }
+
+    const lead = await qualifyAndSaveLead({
+      sessionId: session.sessionId,
+      transcript,
+      decision,
+      session,
+      products,
+    });
+
+    // 4. GENERAL QUERY (RAG) AND PRODUCT RESPONSE
     const reply =
       decision.needsClarification &&
       decision.clarificationQuestion &&
-      products.length === 0
+      products.length === 0 &&
+      knowledgeContext.length === 0
         ? decision.clarificationQuestion
         : await generateSalesResponse({
             transcript,
             decision,
             products,
+            knowledgeContext,
             history: activeHistory,
             memoryContext,
           });
@@ -188,6 +227,7 @@ router.post("/transcript", async (req, res) => {
       transcript,
       decision,
       products,
+      knowledgeContext,
       lead,
       reply
     });
